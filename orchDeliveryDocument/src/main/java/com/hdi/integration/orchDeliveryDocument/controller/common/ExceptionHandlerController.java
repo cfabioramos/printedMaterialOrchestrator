@@ -1,6 +1,6 @@
 package com.hdi.integration.orchDeliveryDocument.controller.common;
 
-import com.hdi.integration.insurancePolicyDetails.exception.BusinnesException;
+import com.hdi.integration.orchDeliveryDocument.exception.BusinnesException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
