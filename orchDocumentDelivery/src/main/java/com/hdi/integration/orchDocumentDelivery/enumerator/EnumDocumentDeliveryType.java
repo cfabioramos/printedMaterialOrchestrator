@@ -2,24 +2,24 @@ package com.hdi.integration.orchDocumentDelivery.enumerator;
 
 public enum EnumDocumentDeliveryType {
 
-    ALL(1, "deliveryall"),
-    POLICY(2, "deliveryticket"),
-    CARD(3, "deliverycard"),
-    POLICY_A(4, "deliveryticketa"),
-    CARD_A(5, "deliverycarda"),
-    CARD_B(6, "deliverycardb"),
-    KIT(7, "");
+    ALL(1L, "deliveryall"),
+    POLICY(2L, "deliverypolicy"),
+    CARD(3L, "deliverycard"),
+    POLICY_A(4L, "deliverypolicy"),
+    CARD_A(5L, "deliverycard"),
+    CARD_B(6L, "deliverycard"),
+    TICKET(7L, "deliveryticket");
 
-    EnumDocumentDeliveryType(int code, String pathIdentifier) {
-        this.code = code;
+    EnumDocumentDeliveryType(Long id, String pathIdentifier) {
+        this.id = id;
         this.pathIdentifier = pathIdentifier;
     }
 
-    private int code;
+    private Long id;
     private String pathIdentifier;
 
-    public int getCode() {
-        return code;
+    public Long getId() {
+        return id;
     }
     public String getPathIdentifier() {
         return pathIdentifier;

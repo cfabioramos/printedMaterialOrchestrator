@@ -1,5 +1,7 @@
 package com.hdi.integration.orchDocumentDelivery.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hdi.integration.orchDocumentDelivery.dto.DocumentDelivery;
 import com.hdi.integration.orchDocumentDelivery.dto.DocumentDeliveryOptions;
 import com.hdi.integration.orchDocumentDelivery.dto.policyEnrichment.InsurancePolicy;
@@ -7,6 +9,7 @@ import com.hdi.integration.orchDocumentDelivery.enumerator.EnumDocumentDeliveryT
 import com.hdi.integration.orchDocumentDelivery.exception.BusinnesException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
@@ -15,45 +18,96 @@ import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Future;
 
 @Service
 public class OrchDocumentDeliveryService {
 
-    public OrchDocumentDeliveryService(RestTemplateBuilder restTemplateBuilder) {
-        this.restTemplate = restTemplateBuilder.build();
-    }
-
     private static final Logger logger = LoggerFactory.getLogger(OrchDocumentDeliveryService.class);
 
-    // local uri: http://localhost:8081/{documentPathIdentifier}/v1/request
-    // @Value("${URI_BASE_DELIVERY_DOCU_API}")
-    private String uriBaseApiDeliveryDocuments;
+    public OrchDocumentDeliveryService(RestTemplateBuilder restTemplateBuilder) {
+        this.restTemplate = restTemplateBuilder.build();
+        this.paramUriVariables = new HashMap<>();
+    }
+
+    private Map<String, Long> paramUriVariables;
+
+    @Value("${URI_BASE_DOCUMENT_DELIVERY_OPTIONS_API}")
+    private String uriBaseDocumentDeliveryOptionsApi;
+
+    @Value("${URI_BASE_ENRICHMENT_POLICY_API}")
+    private String uriBaseEnrichmentPolicyApi;
+
+    @Value("${URI_BASE_DOCUMENT_DELIVERY_POLICY_API}")
+    private String uriBaseDocumentDeliveryPolicyApi;
+
+    @Value("${URI_BASE_DOCUMENT_DELIVERY_TICKET_API}")
+    private String uriBaseDocumentDeliveryTicketApi;
+
+    @Value("${URI_BASE_DOCUMENT_DELIVERY_CARD_API}")
+    private String uriBaseDocumentDeliveryCardApi;
 
     RestTemplate restTemplate;
 
-    public void validateDelivery(HttpHeaders headers, Long idInsurancePolicy, DocumentDelivery documentDeliveryRequest) {
+    public ResponseEntity<String> processDocumentDelivery(
+            HttpHeaders headers, Long idInsurancePolicy, DocumentDelivery documentDeliveryRequest) {
 
-        List<DocumentDeliveryOptions> kitOptionsResponse = this.executeCallStartKitOptions(headers);
+        InsurancePolicy insurancePolicyDetails = this.validateDelivery(headers, idInsurancePolicy, documentDeliveryRequest);
 
-        System.out.println(kitOptionsResponse);
+        if ( EnumDocumentDeliveryType.POLICY.getId().equals(documentDeliveryRequest.getOptionsDelivery().getId()) ||
+                EnumDocumentDeliveryType.POLICY_A.getId().equals(documentDeliveryRequest.getOptionsDelivery().getId())) {
 
-        if (kitOptionsResponse.contains(documentDeliveryRequest.getOptionsDelivery())) {
-            InsurancePolicy insurancePolicy = this.executeCallEnrichmentPolicy(headers, idInsurancePolicy);
+            return this.executeCallDelivery(uriBaseDocumentDeliveryPolicyApi, headers, insurancePolicyDetails);
+        }
+        else if ( EnumDocumentDeliveryType.CARD.getId().equals(documentDeliveryRequest.getOptionsDelivery().getId()) ||
+                EnumDocumentDeliveryType.CARD_A.getId().equals(documentDeliveryRequest.getOptionsDelivery().getId()) ||
+                EnumDocumentDeliveryType.CARD_B.getId().equals(documentDeliveryRequest.getOptionsDelivery().getId())) {
 
-            System.out.println(insurancePolicy);
+            return this.executeCallDelivery(uriBaseDocumentDeliveryCardApi, headers, insurancePolicyDetails);
+        }
+        else if ( EnumDocumentDeliveryType.TICKET.getId().equals(documentDeliveryRequest.getOptionsDelivery().getId())) {
+
+            return this.executeCallDelivery(uriBaseDocumentDeliveryTicketApi, headers, insurancePolicyDetails);
+        }
+        else {
+            throw new BusinnesException("Documento solicitado não permitido para apólice informada.");
         }
 
     }
 
-    private List<DocumentDeliveryOptions> executeCallStartKitOptions(HttpHeaders headers) {
+    private InsurancePolicy validateDelivery(HttpHeaders headers, Long idInsurancePolicy, DocumentDelivery documentDeliveryRequest) {
+
+        this.paramUriVariables.put("idInsurancePolicy", idInsurancePolicy);
+
+        List<DocumentDeliveryOptions> kitOptionsResponse = this.executeCallDocumentDeliveryOptions(headers, idInsurancePolicy);
+
+        if (kitOptionsResponse.contains(documentDeliveryRequest.getOptionsDelivery())) {
+
+            InsurancePolicy insurancePolicyDetails = this.executeCallEnrichmentPolicy(headers, idInsurancePolicy);
+
+            documentDeliveryRequest.setInsurancePolicyCode(insurancePolicyDetails.getInsurancePolicyNumber());
+            insurancePolicyDetails.getCustomer().getDocuments().forEach(document -> {
+                if ("0".equals(document.getType().getId()))
+                    documentDeliveryRequest.setCpfCgc(document.getNumber());
+            });
+            System.out.println(insurancePolicyDetails);
+            return insurancePolicyDetails;
+        }
+
+        throw new BusinnesException("Documento solicitado não permitido para apólice informada.");
+
+    }
+
+    private List<DocumentDeliveryOptions> executeCallDocumentDeliveryOptions(HttpHeaders headers, Long idInsurancePolicy) {
+
+        this.paramUriVariables.put("idInsurancePolicy", idInsurancePolicy);
 
         ResponseEntity<List<DocumentDeliveryOptions>> response =
-                restTemplate.exchange("http://localhost:8081/auto/insurancepolicy/v1/insurancepolicy/35556359/documentDeliveryOptions",
-                        HttpMethod.GET, new HttpEntity<>(headers),
-                        new ParameterizedTypeReference<List<DocumentDeliveryOptions>>() {
-                        });
+                restTemplate.exchange(this.uriBaseDocumentDeliveryOptionsApi, HttpMethod.GET, new HttpEntity<>(headers),
+                        new ParameterizedTypeReference<List<DocumentDeliveryOptions>>() {}, this.paramUriVariables);
 
         if (HttpStatus.OK.equals(response.getStatusCode())) {
             return response.getBody();
@@ -66,8 +120,8 @@ public class OrchDocumentDeliveryService {
     private InsurancePolicy executeCallEnrichmentPolicy(HttpHeaders headers, Long idInsurancePolicy) {
 
         ResponseEntity<InsurancePolicy> response =
-                restTemplate.exchange("http://localhost:8082/auto/insurancepolicy/v1/insurancepolicy/35556359",
-                        HttpMethod.GET, new HttpEntity<>(headers), InsurancePolicy.class);
+                restTemplate.exchange(this.uriBaseEnrichmentPolicyApi, HttpMethod.GET, new HttpEntity<>(headers),
+                        InsurancePolicy.class, this.paramUriVariables);
 
         if (HttpStatus.OK.equals(response.getStatusCode())) {
             return response.getBody();
@@ -77,12 +131,16 @@ public class OrchDocumentDeliveryService {
         }
     }
 
-    @Async
-    public Future<String> deliveryDocument(EnumDocumentDeliveryType documentType) {
-        ResponseEntity<String> response =
-                restTemplate.getForEntity(this.uriBaseApiDeliveryDocuments, String.class, documentType);
-
-        return AsyncResult.forValue(response.getBody());
+    private ResponseEntity<String> executeCallDelivery(String uriDelivery, HttpHeaders headers, InsurancePolicy insurancePolicyDetails) {
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> entity = null;
+        try {
+            entity = new HttpEntity<String>(new ObjectMapper().writeValueAsString(insurancePolicyDetails), headers);
+            return restTemplate.exchange(uriDelivery, HttpMethod.PUT, entity, String.class);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            throw new BusinnesException(e.getMessage());
+        }
     }
 
     public Long getIdInsurancePolicy(Long idInsurancePolicy) {

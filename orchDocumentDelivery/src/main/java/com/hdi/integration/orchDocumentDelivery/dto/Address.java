@@ -65,4 +65,16 @@ public class Address {
     public void setCity(City city) {
         this.city = city;
     }
+
+    @Override
+    public String toString() {
+        return "Address{" +
+                "name='" + name + '\'' +
+                ", streetName='" + streetName + '\'' +
+                ", number=" + number +
+                ", complement='" + complement + '\'' +
+                ", district='" + district + '\'' +
+                ", city=" + city +
+                '}';
+    }
 }

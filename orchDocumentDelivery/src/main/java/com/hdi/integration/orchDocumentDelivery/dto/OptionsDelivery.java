@@ -33,14 +33,14 @@ public class OptionsDelivery {
         if (this == o) {
             return true;
         }
-        if (o == null || (getClass() != o.getClass() && OptionsDelivery.class != o.getClass())) {
+        if (o == null || (getClass() != o.getClass() && DocumentDeliveryOptions.class != o.getClass())) {
             return false;
         }
         if (getClass() == o.getClass()) {
             OptionsDelivery optionsDelivery = (OptionsDelivery) o;
             return Objects.equals(this.id, optionsDelivery.id);
         }
-        if (getClass() == o.getClass()) {
+        if (DocumentDeliveryOptions.class == o.getClass()) {
             DocumentDeliveryOptions documentDeliveryOptions = (DocumentDeliveryOptions) o;
             return Objects.equals(this.id, documentDeliveryOptions.getId());
         }
@@ -52,4 +52,11 @@ public class OptionsDelivery {
         return Objects.hash(id);
     }
 
+    @Override
+    public String toString() {
+        return "OptionsDelivery{" +
+                "id=" + id +
+                ", reasonId=" + reasonId +
+                '}';
+    }
 }

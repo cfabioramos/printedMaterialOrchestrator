@@ -11,6 +11,7 @@ public class DocumentDelivery {
     private Integer itemId;
     @ApiModelProperty(value = "User Login request")
     private String userLogin;
+    private String cpfCgc;
     private Address address;
     private OptionsDelivery optionsDelivery;
 
@@ -38,6 +39,14 @@ public class DocumentDelivery {
         this.userLogin = userLogin;
     }
 
+    public String getCpfCgc() {
+        return cpfCgc;
+    }
+
+    public void setCpfCgc(String cpfCgc) {
+        this.cpfCgc = cpfCgc;
+    }
+
     public Address getAddress() {
         return address;
     }
@@ -52,5 +61,16 @@ public class DocumentDelivery {
 
     public void setOptionsDelivery(OptionsDelivery optionsDelivery) {
         this.optionsDelivery = optionsDelivery;
+    }
+
+    @Override
+    public String toString() {
+        return "DocumentDelivery{" +
+                "insurancePolicyCode='" + insurancePolicyCode + '\'' +
+                ", itemId=" + itemId +
+                ", userLogin='" + userLogin + '\'' +
+                ", address=" + address +
+                ", optionsDelivery=" + optionsDelivery +
+                '}';
     }
 }

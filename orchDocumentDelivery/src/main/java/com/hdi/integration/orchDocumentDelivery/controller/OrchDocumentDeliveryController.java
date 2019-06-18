@@ -6,6 +6,7 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,14 +22,16 @@ public class OrchDocumentDeliveryController {
 
     @ApiOperation(value = "Orchestrator for documents delivery")
     @PostMapping(value = "/insurancepolicy/{idInsurancePolicy}/orchDocumentDelivery", produces = {"application/json"}, consumes = {"application/json"})
-    public ResponseEntity<?> orchDocumentDelivery(
+    public ResponseEntity<String> orchDocumentDelivery(
             @RequestHeader(value = "X-Company-Id", required = true) String companyId,
             @RequestHeader(value = "X-Application-Id", required = true) String applicationId,
             @RequestHeader(value = "X-User-Id", required = true) String userId,
             @ApiParam(value = "Insurance Policy Id", required = true) @PathVariable("idInsurancePolicy") Long idInsurancePolicy,
             @RequestBody DocumentDelivery documentDeliveryRequest) {
 
-        this.service.validateDelivery(this.getHeaders(companyId, applicationId, userId), idInsurancePolicy, documentDeliveryRequest);
+        System.out.println(documentDeliveryRequest);
+
+        return this.service.processDocumentDelivery(this.getHeaders(companyId, applicationId, userId), idInsurancePolicy, documentDeliveryRequest);
 
         // return service.execute(idInsurancePolicy, documentDeliveryRequest, headerParams);
 
@@ -49,8 +52,6 @@ public class OrchDocumentDeliveryController {
 //        } catch (Exception e) {
 //            e.printStackTrace();
 //        }
-
-        return null;
     }
 
     private HttpHeaders getHeaders(String companyId, String applicationId, String userId) {

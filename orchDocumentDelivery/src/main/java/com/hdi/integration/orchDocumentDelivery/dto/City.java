@@ -25,4 +25,12 @@ public class City {
     public void setState(State state) {
         this.state = state;
     }
+
+    @Override
+    public String toString() {
+        return "City{" +
+                "name='" + name + '\'' +
+                ", state=" + state +
+                '}';
+    }
 }
