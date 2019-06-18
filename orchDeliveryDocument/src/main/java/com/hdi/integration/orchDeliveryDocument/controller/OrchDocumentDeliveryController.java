@@ -5,19 +5,13 @@ import com.hdi.integration.orchDeliveryDocument.service.OrchDeliveryDocumentServ
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Future;
+import java.util.Arrays;
 
 @RestController
 public class OrchDeliveryDocumentController {
@@ -26,37 +20,22 @@ public class OrchDeliveryDocumentController {
     private OrchDeliveryDocumentService service;
 
     @ApiOperation(value = "Orchestrator for documents delivery")
-    @PostMapping(value = "/insurancepolicy/{idInsurancePolicy}/orchDeliveryDocument", produces = {"application/json"})
+    @PostMapping(value = "/insurancepolicy/{idInsurancePolicy}/orchDeliveryDocument", produces = {"application/json"}, consumes = {"application/json"})
     public ResponseEntity<?> orchDeliveryDocument(
             @RequestHeader(value = "X-Company-Id", required = true) String companyId,
             @RequestHeader(value = "X-Application-Id", required = true) String applicationId,
             @RequestHeader(value = "X-User-Id", required = true) String userId,
-            @ApiParam(value = "Insurance Policy Id", required = true) @PathVariable("idInsurancePolicy") Long idInsurancePolicy) throws IOException {
+            @ApiParam(value = "Insurance Policy Id", required = true) @PathVariable("idInsurancePolicy") Long idInsurancePolicy,
+            @RequestBody StarterKit documentDeliveryRequest) {
 
-        MultiValueMap<String, String> headerParams = new LinkedMultiValueMap<String, String>();
-        headerParams.add("X-Company-Id", companyId);
-        headerParams.add("X-Application-Id", applicationId);
-        headerParams.add("X-User-Id", userId);
-//        headerParams.put("Accept", "application/json");
+        this.service.validateDelivery(this.getHeaders(companyId, applicationId, userId), idInsurancePolicy, documentDeliveryRequest);
 
-        this.service.validateDelivery(headerParams, idInsurancePolicy);
-
-        // TODO 1: Busca lista de documentos com base no idInsurancePolicy
-
-        // TODO 2: Se as opcoes informadas (documentDeliveryRequest.optionsDelivery) estao contidas na listagem acima
-
-        // TODO 3: Enriquece
-
-        /*
-            TODO 4: Os detalhes acima podem estar no service. Que:
-             (i) retorna um Objeto Enriquecido
-             (ii) lança um erro caso não esteja
-         */
-
-        // TODO 4: Retornando um objeto enriquecido, faz as chamadas assíncronas...
+        // TODO 4: Fazer as chamadas assíncronas...
 
         // return service.execute(idInsurancePolicy, documentDeliveryRequest, headerParams);
 
+//        idInsurancePolicy = this.service.getIdInsurancePolicy(idInsurancePolicy);
+//
 //        try {
 //            Future<String> future1 = service.sendBoletoWithResult(idInsurancePolicy);
 //            Future<String> future2 = service.sendCartaoWithResult(idInsurancePolicy);
@@ -73,8 +52,18 @@ public class OrchDeliveryDocumentController {
 //            e.printStackTrace();
 //        }
 
-
         return null;
+    }
+
+    private HttpHeaders getHeaders(String companyId, String applicationId, String userId) {
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(new ArrayList<>(Arrays.asList(MediaType.APPLICATION_JSON)));
+        headers.add("X-Company-Id", companyId);
+        headers.add("X-Application-Id", applicationId);
+        headers.add("X-User-Id", userId);
+
+        return headers;
     }
 
 

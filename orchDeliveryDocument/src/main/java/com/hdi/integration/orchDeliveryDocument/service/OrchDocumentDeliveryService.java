@@ -1,23 +1,21 @@
 package com.hdi.integration.orchDeliveryDocument.service;
 
+import com.hdi.integration.orchDeliveryDocument.dto.InsurancePolicy;
 import com.hdi.integration.orchDeliveryDocument.dto.StarterKit;
+import com.hdi.integration.orchDeliveryDocument.dto.StarterKitOptions;
 import com.hdi.integration.orchDeliveryDocument.enumerator.EnumDeliveryDocumentType;
 import com.hdi.integration.orchDeliveryDocument.exception.BusinnesException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Service;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.Future;
 
 @Service
@@ -35,26 +33,48 @@ public class OrchDeliveryDocumentService {
 
     RestTemplate restTemplate;
 
-    public void validateDelivery(MultiValueMap headersMap, Long idInsurancePolicy) {
+    public void validateDelivery(HttpHeaders headers, Long idInsurancePolicy, StarterKit documentDeliveryRequest) {
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(new ArrayList<>(Arrays.asList(MediaType.APPLICATION_JSON)));
-        headers.addAll(headersMap);
+        List<StarterKitOptions> kitOptionsResponse = this.executeCallStartKitOptions(headers);
 
-        HttpEntity data = new HttpEntity<>(headers);
+        System.out.println(kitOptionsResponse);
 
-        ResponseEntity<Map> entity =
+        if (kitOptionsResponse.containsAll(documentDeliveryRequest.getOptionsDelivery())) {
+            InsurancePolicy insurancePolicy = this.executeCallEnrichmentPolicy(headers, idInsurancePolicy);
+
+            System.out.println(insurancePolicy);
+        }
+
+    }
+
+    private List<StarterKitOptions> executeCallStartKitOptions(HttpHeaders headers) {
+
+        ResponseEntity<List<StarterKitOptions>> response =
                 restTemplate.exchange("http://localhost:8081/auto/insurancepolicy/v1/insurancepolicy/35556359/starterKitOptions",
-                        HttpMethod.GET, data, Map.class);
+                        HttpMethod.GET, new HttpEntity<>(headers),
+                        new ParameterizedTypeReference<List<StarterKitOptions>>() {
+                        });
 
-
-        if (HttpStatus.OK.equals(entity.getStatusCode())) {
-            System.out.println(entity.getBody());
+        if (HttpStatus.OK.equals(response.getStatusCode())) {
+            return response.getBody();
         }
         else {
-            // throw new BusinnesException(entity.getBody());
+            throw new BusinnesException(response.getBody().toString());
         }
+    }
 
+    private InsurancePolicy executeCallEnrichmentPolicy(HttpHeaders headers, Long idInsurancePolicy) {
+
+        ResponseEntity<InsurancePolicy> response =
+                restTemplate.exchange("http://localhost:8082/auto/insurancepolicy/v1/insurancepolicy/35556359",
+                        HttpMethod.GET, new HttpEntity<>(headers), InsurancePolicy.class);
+
+        if (HttpStatus.OK.equals(response.getStatusCode())) {
+            return response.getBody();
+        }
+        else {
+            throw new BusinnesException(response.getBody().toString());
+        }
     }
 
     @Async
@@ -65,8 +85,14 @@ public class OrchDeliveryDocumentService {
         return AsyncResult.forValue(response.getBody());
     }
 
+    public Long getIdInsurancePolicy(Long idInsurancePolicy) {
+        this.logger.info("> obteve o id...");
+        System.out.println("> obteve o id...");
+        return idInsurancePolicy;
+    }
+
     @Async
-    public Future<String> sendBoletoWithResult(String idInsurancePolicy) {
+    public Future<String> sendBoletoWithResult(Long idInsurancePolicy) {
         this.logger.info("> send Boleto...");
         System.out.println("> send Boleto...");
         try {
@@ -78,7 +104,7 @@ public class OrchDeliveryDocumentService {
     }
 
     @Async
-    public Future<String> sendCartaoWithResult(String idInsurancePolicy) {
+    public Future<String> sendCartaoWithResult(Long idInsurancePolicy) {
         this.logger.info("> send Cartao...");
         System.out.println("> send Cartao...");
         try {
@@ -90,7 +116,7 @@ public class OrchDeliveryDocumentService {
     }
 
     @Async
-    public Future<String> sendApoliceWithResult(String idInsurancePolicy) {
+    public Future<String> sendApoliceWithResult(Long idInsurancePolicy) {
         this.logger.info("> send Apolice...");
         System.out.println("> send Apolice...");
         try {
