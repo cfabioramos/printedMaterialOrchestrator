@@ -55,22 +55,22 @@ public class OrchDocumentDeliveryService {
     public ResponseEntity<String> processDocumentDelivery(
             HttpHeaders headers, Long idInsurancePolicy, DocumentDelivery documentDeliveryRequest) {
 
-        InsurancePolicy insurancePolicyDetails = this.validateDelivery(headers, idInsurancePolicy, documentDeliveryRequest);
+        DocumentDelivery documentDelivery = this.validateDelivery(headers, idInsurancePolicy, documentDeliveryRequest);
 
         if ( EnumDocumentDeliveryType.POLICY.getId().equals(documentDeliveryRequest.getOptionsDelivery().getId()) ||
                 EnumDocumentDeliveryType.POLICY_A.getId().equals(documentDeliveryRequest.getOptionsDelivery().getId())) {
 
-            return this.executeCallDelivery(uriBaseDocumentDeliveryPolicyApi, headers, insurancePolicyDetails);
+            return this.executeCallDelivery(uriBaseDocumentDeliveryPolicyApi, headers, documentDelivery);
         }
         else if ( EnumDocumentDeliveryType.CARD.getId().equals(documentDeliveryRequest.getOptionsDelivery().getId()) ||
                 EnumDocumentDeliveryType.CARD_A.getId().equals(documentDeliveryRequest.getOptionsDelivery().getId()) ||
                 EnumDocumentDeliveryType.CARD_B.getId().equals(documentDeliveryRequest.getOptionsDelivery().getId())) {
 
-            return this.executeCallDelivery(uriBaseDocumentDeliveryCardApi, headers, insurancePolicyDetails);
+            return this.executeCallDelivery(uriBaseDocumentDeliveryCardApi, headers, documentDelivery);
         }
         else if ( EnumDocumentDeliveryType.TICKET.getId().equals(documentDeliveryRequest.getOptionsDelivery().getId())) {
 
-            return this.executeCallDelivery(uriBaseDocumentDeliveryTicketApi, headers, insurancePolicyDetails);
+            return this.executeCallDelivery(uriBaseDocumentDeliveryTicketApi, headers, documentDelivery);
         }
         else {
             throw new BusinnesException("Documento solicitado não permitido para apólice informada.");
@@ -78,7 +78,7 @@ public class OrchDocumentDeliveryService {
 
     }
 
-    private InsurancePolicy validateDelivery(HttpHeaders headers, Long idInsurancePolicy, DocumentDelivery documentDeliveryRequest) {
+    private DocumentDelivery validateDelivery(HttpHeaders headers, Long idInsurancePolicy, DocumentDelivery documentDeliveryRequest) {
 
         this.paramUriVariables.put("idInsurancePolicy", idInsurancePolicy);
 
@@ -94,7 +94,7 @@ public class OrchDocumentDeliveryService {
                     documentDeliveryRequest.setCpfCgc(document.getNumber());
             });
             System.out.println(insurancePolicyDetails);
-            return insurancePolicyDetails;
+            return documentDeliveryRequest;
         }
 
         throw new BusinnesException("Documento solicitado não permitido para apólice informada.");
@@ -131,11 +131,11 @@ public class OrchDocumentDeliveryService {
         }
     }
 
-    private ResponseEntity<String> executeCallDelivery(String uriDelivery, HttpHeaders headers, InsurancePolicy insurancePolicyDetails) {
+    private ResponseEntity<String> executeCallDelivery(String uriDelivery, HttpHeaders headers, DocumentDelivery documentDelivery) {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<String> entity = null;
         try {
-            entity = new HttpEntity<String>(new ObjectMapper().writeValueAsString(insurancePolicyDetails), headers);
+            entity = new HttpEntity<String>(new ObjectMapper().writeValueAsString(documentDelivery), headers);
             return restTemplate.exchange(uriDelivery, HttpMethod.PUT, entity, String.class);
         } catch (JsonProcessingException e) {
             e.printStackTrace();
